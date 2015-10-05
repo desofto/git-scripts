@@ -1,0 +1,91 @@
+#!/bin/bash
+skip_rebase=false
+skip_rubocop=false
+skip_test=false
+
+while getopts mrt opts; do
+  case ${opts} in
+    m) skip_rebase=true ;;
+    r) skip_rubocop=true ;;
+    t) skip_test=true ;;
+  esac
+done
+
+function dogit {
+  echo "> git $1"
+  git $1
+  err=$?
+  if [ $err -ne 0 ]
+  then
+    echo $err
+    exit
+  fi
+}
+
+export PARALLEL_TEST_PROCESSORS=6
+
+current=`git rev-parse --abbrev-ref HEAD`
+if [ $current == 'master' ]
+then
+  echo "On master"
+  exit 1
+fi
+
+if ! [ $skip_rebase == true ]
+then
+  count=$(git rev-list --count ^origin/master $current)
+  if [ $count -gt 1 ]
+  then
+    echo "Too many commits to branch"
+    dogit "rebase -i origin/master"
+    exit 1
+  fi
+fi
+
+dogit "checkout master"
+dogit "pull --rebase"
+dogit "checkout $current"
+dogit "rebase master"
+
+if ! [ $skip_rubocop == true ]
+then
+  echo "Rubocop..."
+  rubocop
+  err=$?
+  if [ $err -ne 0 ]
+  then
+    echo $err
+    exit
+  fi
+fi
+
+if ! [ $skip_test == true ]
+then
+  echo "Preparing database..."
+  if [ -f ".rspec_parallel" ]
+  then
+    bundle exec bin/rake parallel:create parallel:prepare
+  else
+    bundle exec bin/rake db:migrate db:test:prepare
+  fi
+
+  echo "Testing..."
+  #if [ -f ".rspec_parallel" ]
+  #then
+  #  xvfb-run -a rake parallel:spec
+  #else
+    bundle exec xvfb-run -a bin/rspec --fail-fast
+  #fi
+  err=$?
+  if [ $err -ne 0 ]
+  then
+    echo $err
+    exit
+  fi
+fi
+
+dogit "checkout master"
+dogit "merge $current --ff-only"
+dogit "push origin master"
+dogit "push origin --delete $current"
+dogit "branch --delete $current"

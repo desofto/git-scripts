@@ -1,0 +1,19 @@
+#!/bin/bash
+PS3='Select a project: '
+select project in new `screen -ls|grep Multi|awk '{print $1}'`
+do
+  if [ $project = 'new' ]
+  then
+    cd ~/src
+    PS3='Select a project: '
+    select project in *
+    do
+      cd $project
+      screen -S $project
+    done
+  else
+    screen -x $project
+  fi
+  break
+done
+

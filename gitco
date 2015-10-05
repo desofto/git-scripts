@@ -1,0 +1,14 @@
+#!/bin/bash
+if [ "$1" == "" ]; then
+  echo "On" `git rev-parse --abbrev-ref HEAD`
+  PS3='Select a branch: '
+  select branch in $(git branch | cut -c 3-)
+  do
+    echo "Switching to $branch"
+    git checkout $branch
+    break
+  done
+else
+  git checkout $(git branch | cut -c 3- | grep $1)
+fi
+

@@ -1,0 +1,9 @@
+#!/bin/bash
+#git pull --rebase origin `git rev-parse --abbrev-ref HEAD`
+#err=$?
+#if [ $err -ne 0 ]
+# then
+#  echo $err
+#  exit
+#fi
+git push origin `git rev-parse --abbrev-ref HEAD` -f
