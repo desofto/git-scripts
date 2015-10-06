@@ -84,6 +84,7 @@ then
   fi
 fi
 
+dogit "push origin $current -f"
 dogit "checkout master"
 dogit "merge $current --ff-only"
 dogit "push origin master"
